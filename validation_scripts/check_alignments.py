@@ -65,7 +65,7 @@ def analyze_alignment(seqs: Dict[str, str], dominant_cutoff: float) -> Dict[str,
 
     n_seq = len(seqs)
     aln_len = next(iter(lengths))
-    matrix = [[normalize_char(c) for c in s] for s in seqs.values()]
+    alignment_matrix = [[normalize_char(c) for c in s] for s in seqs.values()]
 
     gap_fracs: List[float] = []
     entropies: List[float] = []
@@ -73,7 +73,7 @@ def analyze_alignment(seqs: Dict[str, str], dominant_cutoff: float) -> Dict[str,
     dominant_pass_strict = 0
 
     for j in range(aln_len):
-        col = [row[j] for row in matrix]
+        col = [row[j] for row in alignment_matrix]
         gap_count = sum(1 for x in col if x == "-")
         gap_frac = gap_count / n_seq
         gap_fracs.append(gap_frac)

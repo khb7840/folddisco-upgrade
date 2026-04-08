@@ -25,12 +25,12 @@ except Exception as exc:  # pragma: no cover
     raise SystemExit("[ERROR] biopython is required for validate_sets.py") from exc
 
 
-Record = Tuple[str, str, str, str]
-Pair = Tuple[str, str]
+DomainRecord = Tuple[str, str, str, str]
+DomainPair = Tuple[str, str]
 
 
-def read_domain_list(path: Path) -> List[Record]:
-    rows: List[Record] = []
+def read_domain_list(path: Path) -> List[DomainRecord]:
+    rows: List[DomainRecord] = []
     with path.open("r", encoding="utf-8") as handle:
         for line in handle:
             line = line.strip()
@@ -43,7 +43,7 @@ def read_domain_list(path: Path) -> List[Record]:
     return rows
 
 
-def cath_key(row: Record) -> str:
+def cath_key(row: DomainRecord) -> str:
     return f"{row[1]}_{row[2]}_{row[3]}"
 
 
@@ -85,28 +85,28 @@ def kabsch_superpose(ref: np.ndarray, mob: np.ndarray) -> Tuple[np.ndarray, floa
     ref_center = ref.mean(axis=0)
     mob_center = mob.mean(axis=0)
 
-    ref0 = ref - ref_center
-    mob0 = mob - mob_center
+    ref_centered = ref - ref_center
+    mob_centered = mob - mob_center
 
-    h = mob0.T @ ref0
+    h = mob_centered.T @ ref_centered
     u, _, vt = np.linalg.svd(h)
     r = vt.T @ u.T
     if np.linalg.det(r) < 0:
         vt[-1, :] *= -1
         r = vt.T @ u.T
 
-    mob_aligned = (mob0 @ r) + ref_center
+    mob_aligned = (mob_centered @ r) + ref_center
     diff = ref - mob_aligned
     rmsd = float(np.sqrt((diff * diff).sum() / len(ref)))
     return mob_aligned, rmsd
 
 
 def tm_score_from_distances(distances: np.ndarray, length_norm: int) -> float:
-    l = max(length_norm, 1)
-    if l <= 15:
+    normalized_length = max(length_norm, 1)
+    if normalized_length <= 15:
         d0 = 0.5
     else:
-        d0 = 1.24 * ((l - 15) ** (1.0 / 3.0)) - 1.8
+        d0 = 1.24 * ((normalized_length - 15) ** (1.0 / 3.0)) - 1.8
         d0 = max(d0, 0.5)
     return float(np.mean(1.0 / (1.0 + (distances / d0) ** 2)))
 
@@ -143,14 +143,14 @@ def run_tmalign(pdb_a: Path, pdb_b: Path, tmalign_bin: str) -> Optional[Tuple[fl
     return tm, rmsd, "tmalign"
 
 
-def build_true_pairs(rows_index: List[Record], existing_index_ids: set[str], sample_size: int, rng: random.Random) -> List[Pair]:
+def build_true_pairs(rows_index: List[DomainRecord], existing_index_ids: set[str], sample_size: int, rng: random.Random) -> List[DomainPair]:
     by_sf: Dict[str, List[str]] = defaultdict(list)
     for row in rows_index:
         pid = row[0]
         if pid in existing_index_ids:
             by_sf[cath_key(row)].append(pid)
 
-    all_pairs: List[Pair] = []
+    all_pairs: List[DomainPair] = []
     for ids in by_sf.values():
         if len(ids) < 2:
             continue
@@ -168,20 +168,20 @@ def build_true_pairs(rows_index: List[Record], existing_index_ids: set[str], sam
 
 
 def build_false_pairs(
-    rows_index: List[Record],
-    rows_null: List[Record],
+    rows_index: List[DomainRecord],
+    rows_null: List[DomainRecord],
     existing_index_ids: set[str],
     existing_null_ids: set[str],
     sample_size: int,
     rng: random.Random,
-) -> List[Pair]:
+) -> List[DomainPair]:
     index_sf = {row[0]: cath_key(row) for row in rows_index if row[0] in existing_index_ids}
     null_sf = {row[0]: cath_key(row) for row in rows_null if row[0] in existing_null_ids}
 
     null_ids = sorted(null_sf)
     index_ids = sorted(index_sf)
 
-    pairs: List[Pair] = []
+    pairs: List[DomainPair] = []
     tries = 0
     max_tries = sample_size * 100
     while len(pairs) < sample_size and tries < max_tries and null_ids and index_ids:
@@ -198,12 +198,23 @@ def build_false_pairs(
 
 
 def plot_tm_distribution(out_png: Path, true_scores: List[float], false_scores: List[float]) -> Optional[str]:
+    """Plot TM-score distributions and return an optional warning string."""
     try:
         import matplotlib.pyplot as plt
     except Exception:
         return "matplotlib is not installed; plot generation skipped"
 
     if not true_scores and not false_scores:
+        plt.figure(figsize=(9, 5))
+        plt.text(0.5, 0.5, "No TM-score data available", ha="center", va="center", fontsize=12)
+        plt.xlim(0, 1)
+        plt.ylim(0, 1)
+        plt.xlabel("TM-score")
+        plt.ylabel("Density")
+        plt.title("TM-score Distribution: True vs False Set")
+        plt.tight_layout()
+        plt.savefig(out_png, dpi=220)
+        plt.close()
         return "no TM-score values available for plotting"
 
     bins = np.linspace(0.0, 1.0, 31)
@@ -270,12 +281,23 @@ def main() -> None:
     true_tm, false_tm = [], []
     true_high, false_low = 0, 0
 
-    def eval_pair(set_name: str, pair: Pair) -> None:
+    def pdb_path_for_id(pid: str, prefer_non_cluster: bool = False) -> Optional[Path]:
+        null_path = null_pdb_dir / f"{pid}.pdb"
+        index_path = index_pdb_dir / f"{pid}.pdb"
+        if prefer_non_cluster and null_path.exists():
+            return null_path
+        if index_path.exists():
+            return index_path
+        if null_path.exists():
+            return null_path
+        return None
+
+    def eval_pair(set_name: str, pair: DomainPair) -> None:
         nonlocal true_high, false_low
         id_a, id_b = pair
-        pdb_a = (null_pdb_dir / f"{id_a}.pdb") if set_name == "false" and (null_pdb_dir / f"{id_a}.pdb").exists() else (index_pdb_dir / f"{id_a}.pdb")
-        pdb_b = (index_pdb_dir / f"{id_b}.pdb")
-        if not pdb_a.exists() or not pdb_b.exists():
+        pdb_a = pdb_path_for_id(id_a, prefer_non_cluster=(set_name == "false"))
+        pdb_b = pdb_path_for_id(id_b, prefer_non_cluster=False)
+        if pdb_a is None or pdb_b is None:
             return
 
         metrics = run_tmalign(pdb_a, pdb_b, tmalign_bin) if use_tmalign and tmalign_bin else None

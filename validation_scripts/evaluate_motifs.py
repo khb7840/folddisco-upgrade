@@ -22,10 +22,10 @@ except Exception as exc:  # pragma: no cover
     raise SystemExit("[ERROR] biopython is required for evaluate_motifs.py") from exc
 
 
-Tag = Tuple[str, int, str]  # chain, resseq, icode
+ResidueTag = Tuple[str, int, str]  # chain, resseq, icode
 
 
-def parse_tag(tag: str) -> Optional[Tag]:
+def parse_tag(tag: str) -> Optional[ResidueTag]:
     tag = tag.strip()
     m = re.match(r"^([A-Za-z0-9])(\d+)([A-Za-z]?)$", tag)
     if not m:
@@ -65,27 +65,19 @@ def build_secondary_index_from_header(pdb_path: Path) -> Dict[Tuple[str, int, st
             if rec == "HELIX":
                 chain = line[19:20].strip() or " "
                 start = int(line[21:25].strip())
-                icode_start = (line[25:26].strip() or " ")
                 end = int(line[33:37].strip())
-                icode_end = (line[37:38].strip() or " ")
                 if chain == " ":
                     continue
                 for resseq in range(start, end + 1):
                     sec[(chain, resseq, " ")] = "H"
-                    sec[(chain, resseq, icode_start)] = "H"
-                    sec[(chain, resseq, icode_end)] = "H"
             elif rec == "SHEET":
                 chain = line[21:22].strip() or " "
                 start = int(line[22:26].strip())
-                icode_start = (line[26:27].strip() or " ")
                 end = int(line[33:37].strip())
-                icode_end = (line[37:38].strip() or " ")
                 if chain == " ":
                     continue
                 for resseq in range(start, end + 1):
                     sec[(chain, resseq, " ")] = "E"
-                    sec[(chain, resseq, icode_start)] = "E"
-                    sec[(chain, resseq, icode_end)] = "E"
     return sec
 
 
@@ -102,7 +94,16 @@ def get_ca_coord(structure, chain: str, resseq: int, icode: str):
     return residue["CA"].coord
 
 
+def lookup_secondary_structure(sec_index: Dict[Tuple[str, int, str], str], chain: str, resseq: int, icode: str) -> str:
+    if (chain, resseq, icode) in sec_index:
+        return sec_index[(chain, resseq, icode)]
+    if (chain, resseq, " ") in sec_index:
+        return sec_index[(chain, resseq, " ")]
+    return "C"
+
+
 def plot_secondary_structure_distribution(out_png: Path, counts: Counter) -> Optional[str]:
+    """Plot secondary-structure distribution and return an optional warning string."""
     try:
         import matplotlib.pyplot as plt
     except Exception:
@@ -111,6 +112,16 @@ def plot_secondary_structure_distribution(out_png: Path, counts: Counter) -> Opt
     labels = ["H", "E", "C"]
     values = [counts.get("H", 0), counts.get("E", 0), counts.get("C", 0)]
     if sum(values) == 0:
+        plt.figure(figsize=(7, 5))
+        plt.text(0.5, 0.5, "No secondary-structure assignments available", ha="center", va="center", fontsize=11)
+        plt.xlim(0, 1)
+        plt.ylim(0, 1)
+        plt.xlabel("Secondary Structure Class")
+        plt.ylabel("Residue Count")
+        plt.title("Motif Secondary Structure Distribution")
+        plt.tight_layout()
+        plt.savefig(out_png, dpi=220)
+        plt.close()
         return "no secondary structure assignments available"
 
     plt.figure(figsize=(7, 5))
@@ -160,7 +171,7 @@ def main() -> None:
 
     for ent in entries:
         pdb_id = ent["pdb_id"]
-        tags: List[Tag] = ent["tags"]  # type: ignore[assignment]
+        tags: List[ResidueTag] = ent["tags"]  # type: ignore[assignment]
         pdb_path = index_pdb_dir / f"{pdb_id}.pdb"
         if not pdb_path.exists():
             continue
@@ -179,7 +190,7 @@ def main() -> None:
             if coord is None:
                 continue
             coords.append(coord)
-            motif_sec.append(sec_index.get((chain, resseq, icode), sec_index.get((chain, resseq, " "), "C")))
+            motif_sec.append(lookup_secondary_structure(sec_index, chain, resseq, icode))
 
         if len(coords) < 2:
             continue

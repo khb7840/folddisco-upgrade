@@ -53,6 +53,19 @@ The repository clone does not include local structural PDB datasets under:
 
 As a result, execution completes in warning mode and reports missing inputs instead of biological conclusions.
 
+Observed run outputs:
+
+- `true_pairs_scored=0`, `false_pairs_scored=0`
+- `alignments_found=0`, `alignments_analyzed=0`
+- `entries_read=500`, `entries_scored=0`
+- Placeholder visualizations were still generated:
+  - `validation_scripts/output/tm_score_distribution.png`
+  - `validation_scripts/output/motif_secondary_structure_distribution.png`
+
+Repository test status after script changes:
+
+- `python 05-folddisco-validation/command/09_value_check_test.py` → **PASS**
+
 ## Interpretation Guidance
 - True-set TM-score distribution should be shifted toward high similarity (`TM-score > 0.5`).
 - False-set TM-score distribution should represent structural null/background (`TM-score < 0.5`).
