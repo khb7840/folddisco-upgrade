@@ -27,6 +27,7 @@ except Exception as exc:  # pragma: no cover
 
 DomainRecord = Tuple[str, str, str, str]
 DomainPair = Tuple[str, str]
+MIN_RESIDUES_FOR_STRUCTURAL_METRICS = 5
 
 
 def read_domain_list(path: Path) -> List[DomainRecord]:
@@ -114,7 +115,7 @@ def tm_score_from_distances(distances: np.ndarray, length_norm: int) -> float:
 def fallback_pair_metrics(pdb_a: Path, pdb_b: Path, id_a: str, id_b: str) -> Optional[Tuple[float, float, str]]:
     ca_a = extract_ca_coords(pdb_a, id_a)
     ca_b = extract_ca_coords(pdb_b, id_b)
-    if len(ca_a) < 5 or len(ca_b) < 5:
+    if len(ca_a) < MIN_RESIDUES_FOR_STRUCTURAL_METRICS or len(ca_b) < MIN_RESIDUES_FOR_STRUCTURAL_METRICS:
         return None
 
     n = min(len(ca_a), len(ca_b))

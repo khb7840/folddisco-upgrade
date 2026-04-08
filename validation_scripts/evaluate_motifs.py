@@ -24,6 +24,7 @@ except Exception as exc:  # pragma: no cover
 
 
 ResidueTag = Tuple[str, int, str]  # chain, resseq, icode
+MIN_MOTIF_LENGTH_FOR_PAIRWISE_COMPARISON = 3
 
 
 def parse_tag(tag: str) -> Optional[ResidueTag]:
@@ -65,7 +66,11 @@ def get_ca_coord(structure, chain: str, resseq: int, icode: str):
     chain_obj = model[chain]
     key = (" ", resseq, icode)
     alt_key = (" ", resseq, " ")
-    residue = chain_obj[key] if key in chain_obj else (chain_obj[alt_key] if alt_key in chain_obj else None)
+    residue = None
+    if key in chain_obj:
+        residue = chain_obj[key]
+    elif alt_key in chain_obj:
+        residue = chain_obj[alt_key]
     if residue is None or "CA" not in residue:
         return None
     return residue["CA"].coord
@@ -102,7 +107,7 @@ def tm_like_score_from_distances(distances: np.ndarray, length_norm: int) -> flo
 
 
 def motif_pair_geometry(coords_a: np.ndarray, coords_b: np.ndarray) -> Optional[Tuple[float, float]]:
-    if len(coords_a) != len(coords_b) or len(coords_a) < 3:
+    if len(coords_a) != len(coords_b) or len(coords_a) < MIN_MOTIF_LENGTH_FOR_PAIRWISE_COMPARISON:
         return None
     aligned_b, rmsd = kabsch_align(coords_a, coords_b)
     dists = np.linalg.norm(coords_a - aligned_b, axis=1)
