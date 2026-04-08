@@ -1,0 +1,65 @@
+# Validation Report
+
+## Scope
+This report summarizes integrity checks for the Folddisco validation inputs and generated motif quality.
+
+- Task 1: Structural integrity of True/False sets (TM-score/RMSD)
+- Task 2: Foldmason alignment quality (gap and entropy statistics)
+- Task 3: Motif spatial/secondary-structure plausibility
+
+## Execution Context
+- Repository: `khb7840/folddisco-upgrade`
+- Script directory: `validation_scripts/`
+- Output directory (default): `validation_scripts/output/`
+
+## Scripts Added
+- `validation_scripts/validate_sets.py`
+- `validation_scripts/check_alignments.py`
+- `validation_scripts/evaluate_motifs.py`
+
+## How to Run
+From repository root:
+
+```bash
+python validation_scripts/validate_sets.py \
+  --index-pdb-dir /absolute/path/to/data/index_pdbs \
+  --null-pdb-dir /absolute/path/to/data/non_cluster_pdbs
+
+python validation_scripts/check_alignments.py \
+  --foldmason-dir /absolute/path/to/foldmason_output_root
+
+python validation_scripts/evaluate_motifs.py \
+  --index-pdb-dir /absolute/path/to/data/index_pdbs
+```
+
+## Output Files
+Expected generated outputs in `validation_scripts/output/`:
+
+- `tm_rmsd_sampled_pairs.tsv`
+- `validate_sets_summary.txt`
+- `tm_score_distribution.png`
+- `alignment_quality_per_group.tsv`
+- `check_alignments_summary.txt`
+- `motif_spatial_quality.tsv`
+- `evaluate_motifs_summary.txt`
+- `motif_secondary_structure_distribution.png`
+
+## Current Run Summary (this environment)
+The repository clone does not include local structural PDB datasets under:
+
+- `04-folddisco-validation-preparation/data/index_pdbs/`
+- `04-folddisco-validation-preparation/data/non_cluster_pdbs/`
+- Foldmason MSA directories with `result_aa.fa`
+
+As a result, execution completes in warning mode and reports missing inputs instead of biological conclusions.
+
+## Interpretation Guidance
+- True-set TM-score distribution should be shifted toward high similarity (`TM-score > 0.5`).
+- False-set TM-score distribution should represent structural null/background (`TM-score < 0.5`).
+- High `columns_gap_gt_50pct_frac` or low `dominant_pass_strict_frac` can indicate poor alignment blocks.
+- Motifs with high consecutive CA jumps and high coil fraction may indicate spatially incoherent query extraction.
+
+## Warnings / Edge Cases
+- If TM-align binary is unavailable, Task 1 falls back to Kabsch-based approximate TM-score.
+- If matplotlib is unavailable, PNG plots are skipped and warnings are written in summaries.
+- Secondary structure classification in Task 3 uses HELIX/SHEET records from PDB headers; residues not annotated are treated as coil.
