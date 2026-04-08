@@ -1,12 +1,17 @@
-Validation Task 3: Motif Spatial and Biological Plausibility
+Validation Task 3: Motif 3D Geometric Plausibility
 chain_residue_list=/home/runner/work/folddisco-upgrade/folddisco-upgrade/04-folddisco-validation-preparation/result/chain_residue_list.txt
 index_pdb_dir=/home/runner/work/folddisco-upgrade/folddisco-upgrade/04-folddisco-validation-preparation/data/index_pdbs
 entries_read=500
 entries_scored=0
 continuity_threshold=4.5
+pairwise_rmsd_threshold=3.0
+pairwise_tm_threshold=0.5
 continuity_pass_fraction=nan
 mean_max_consecutive_ca_distance=nan
-helix_fraction=nan
-sheet_fraction=nan
-coil_fraction=nan
-plot_warning=no secondary structure assignments available
+mean_radius_of_gyration=nan
+mean_max_pairwise_ca_distance=nan
+pairwise_comparisons=0
+mean_pair_rmsd=nan
+mean_pair_tm_like=nan
+pairwise_joint_pass_fraction=nan
+plot_warning=no pairwise motif geometry data available

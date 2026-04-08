@@ -5,7 +5,7 @@ This report summarizes integrity checks for the Folddisco validation inputs and 
 
 - Task 1: Structural integrity of True/False sets (TM-score/RMSD)
 - Task 2: Foldmason alignment quality (gap and entropy statistics)
-- Task 3: Motif spatial/secondary-structure plausibility
+- Task 3: Motif 3D geometric plausibility
 
 ## Execution Context
 - Repository: `khb7840/folddisco-upgrade`
@@ -41,8 +41,9 @@ Expected generated outputs in `validation_scripts/output/`:
 - `alignment_quality_per_group.tsv`
 - `check_alignments_summary.txt`
 - `motif_spatial_quality.tsv`
+- `motif_pairwise_geometry.tsv`
 - `evaluate_motifs_summary.txt`
-- `motif_secondary_structure_distribution.png`
+- `motif_geometry_distribution.png`
 
 ## Current Run Summary (this environment)
 The repository clone does not include local structural PDB datasets under:
@@ -60,7 +61,7 @@ Observed run outputs:
 - `entries_read=500`, `entries_scored=0`
 - Placeholder visualizations were still generated:
   - `validation_scripts/output/tm_score_distribution.png`
-  - `validation_scripts/output/motif_secondary_structure_distribution.png`
+  - `validation_scripts/output/motif_geometry_distribution.png`
 
 Repository test status after script changes:
 
@@ -70,9 +71,12 @@ Repository test status after script changes:
 - True-set TM-score distribution should be shifted toward high similarity (`TM-score > 0.5`).
 - False-set TM-score distribution should represent structural null/background (`TM-score < 0.5`).
 - High `columns_gap_gt_50pct_frac` or low `dominant_pass_strict_frac` can indicate poor alignment blocks.
-- Motifs with high consecutive CA jumps and high coil fraction may indicate spatially incoherent query extraction.
+- Motifs with high consecutive Cα jumps, high intra-motif spread, high pairwise RMSD, or low pairwise TM-like scores may indicate spatially incoherent query extraction.
 
 ## Warnings / Edge Cases
 - If TM-align binary is unavailable, Task 1 falls back to Kabsch-based approximate TM-score.
 - If matplotlib is unavailable, PNG plots are skipped and warnings are written in summaries.
-- Secondary structure classification in Task 3 uses HELIX/SHEET records from PDB headers; residues not annotated are treated as coil.
+- Task 3 now avoids secondary-structure labels and uses geometry-only metrics:
+  - per-motif continuity (`max_consecutive_ca_distance`)
+  - per-motif compactness (`radius_of_gyration`, `max_pairwise_ca_distance`)
+  - within-group pairwise motif similarity (`pair_rmsd`, `pair_tm_like`)

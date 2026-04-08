@@ -1,1 +1,1 @@
-cat_id	pdb_id	motif_length	max_consecutive_ca_distance	continuity_pass	helix_residues	sheet_residues	coil_residues
+cat_id	pdb_id	motif_length	max_consecutive_ca_distance	radius_of_gyration	max_pairwise_ca_distance	continuity_pass
