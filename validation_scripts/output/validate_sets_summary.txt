@@ -1,0 +1,16 @@
+Validation Task 1: Structural Integrity of True/False Sets
+index_list=/home/runner/work/folddisco-upgrade/folddisco-upgrade/04-folddisco-validation-preparation/data/domain-list-index.txt
+null_list=/home/runner/work/folddisco-upgrade/folddisco-upgrade/04-folddisco-validation-preparation/data/domain-list-noncluster.txt
+index_pdb_dir=/home/runner/work/folddisco-upgrade/folddisco-upgrade/04-folddisco-validation-preparation/data/index_pdbs
+null_pdb_dir=/home/runner/work/folddisco-upgrade/folddisco-upgrade/04-folddisco-validation-preparation/data/non_cluster_pdbs
+sample_size_requested=200
+true_pairs_sampled=0
+false_pairs_sampled=0
+true_pairs_scored=0
+false_pairs_scored=0
+true_tm_mean=nan
+false_tm_mean=nan
+true_fraction_tm_gt_0_5=nan
+false_fraction_tm_lt_0_5=nan
+scoring_method=fallback_kabsch
+plot_warning=no TM-score values available for plotting

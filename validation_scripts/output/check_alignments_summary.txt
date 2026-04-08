@@ -1,0 +1,7 @@
+Validation Task 2: Foldmason Alignment Quality
+foldmason_dir=/home/runner/work/folddisco-upgrade/folddisco-upgrade/04-folddisco-validation-preparation/data/foldmason_1
+fasta_name=result_aa.fa
+dominant_cutoff=0.66
+alignments_found=0
+alignments_analyzed=0
+alignments_failed_format=0
